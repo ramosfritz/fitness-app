@@ -1,0 +1,311 @@
+RG=$(az group list --query [].name --output tsv)
+NAME='asp-ramosfitness-linux'
+
+az appservice plan create --name $NAME \
+--resource-group $RG \
+--is-linux \
+--sku B1
+
+
+***************************************************
+****************************************************
+RG="204-rg"; NAME="app-fitness-windows"
+
+az appservice plan create --name $NAME \
+--resource-group $RG \
+--sku B1 \
+--location southeastasia
+
+az account show --output table
+
+*************************************************
+RG="204-rg"; NAME="app-fitness-linux"
+
+az appservice plan create --name $NAME \
+--resource-group $RG \
+--is-linux \
+--sku B1 \
+--location southeastasia
+
+
+
+RG="204-rg"; NAME="app-fitness-windows"
+
+az appservice plan create --name $NAME \
+--resource-group $RG \
+--sku B1 \
+--location southeastasia
+
+git clone https://github.com/ramosfritz/fitness-app
+
+cd fitness-app/ 
+
+code .
+
+RG=$(az group list --query [].name --output tsv)
+
+LOCATION=$(az group list --query [].location --output tsv)
+
+******create the web app ********
+
+az webapp create \
+--resource-group 204-rg \
+--plan app-fitness-windows \
+--name app-fitness-windows-fritz01 \
+--runtime "DOTNET:8"
+
+az webapp create \
+--resource-group 204-rg \
+--plan app-fitness-linux \
+--name app-fitness-linux-fritz01 \
+--runtime "DOTNET:8"
+
+
+ az webapp up --name app-fitness-windows-fritz01 --resource-group 204-rg
+ az webapp up --name app-fitness-windows-fritz01 --resource-group 204-rg 
+ 
+ 
+ az webapp config appsettings set --resource-group 204-rg --name app-fitness-windows-fritz01 --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true; az webapp up --name app-fitness-windows-fritz01 --resource-group 204-rg
+ 
+ az webapp up --name app-fitness-windows-fritz01 --resource-group 204-rg
+***************************************************************
+az webapp up \
+--name app-fitness-wndows \
+--sku B1 \
+--runtime dotnet:8 \
+--plan app-fitness-wndows-fritz01 \
+--resource-group $RG \
+--location $LOCATION
+
+
+***************************************************
+RG="AZ204-rg"; LOCATION="southeastasia"
+
+
+az webapp up \
+--name asp-carvedrockfitness-windows \
+--sku B1 \
+--runtime dotnet:8 \
+--plan asp-CarvedRockFitness-windows \
+--resource-group $RG \
+--location $LOCATION
+
+RG="AZ204-rg"; LOCATION="southeastasia"
+******************************************************
+az webapp up \
+--name asp-CarvedRockFitness-windows \
+--resource-group AZ204-rg \
+--plan asp-CarvedRockFitness-windows \
+--runtime dotnet:8 \
+--sku B1 \
+--location southeastasia
+*****************************************************
+create the web app 
+
+az webapp create \
+--resource-group AZ204-rg \
+--plan asp-CarvedRockFitness-windows \
+--name app-carvedrockfitness-win-fritz01 \
+--runtime "DOTNET:8"
+
+az webapp create \
+--resource-group AZ204-rg \
+--plan asp-CarvedRockFitness-linux \
+--name app-carvedrockfitness-linux-fritz01 \
+--runtime "DOTNET:8"
+
+
+***git*****
+git pull origin main --rebase; git push
+
+****create a webapp for container **********************************
+
+az acr build --registry crlmamgdfmfb3a4 --image cont-app-fitness:latest .
+ 
+az acr repository list --name crlmamgdfmfb3a4 --output table
+
+***create the web app***
+az webapp create \
+--resource-group 204-rg \
+--plan app-fitness-linux \
+--name cont-app-fitness-demo-fritz01 \
+--deployment-container-image-name crlmamgdfmfb3a4.azurecr.io/cont-app-fitness:latest
+
+*****configure app auth****
+az webapp config container set \
+--name cont-app-fitness-demo-fritz01 \
+--resource-group AZ204-rg \
+--docker-registry-server-url https://crlmamgdfmfb3a4.azurecr.io \
+--docker-registry-server-user $(az acr credential show --name crlmamgdfmfb3a4 --query username -o tsv) \
+--docker-registry-server-password $(az acr credential show --name crlmamgdfmfb3a4 --query passwords[0].value -o tsv)
+
+**verify deployment*** 
+
+https://cont-app-fitness-demo-fritz01.azurewebsites.net
+
+
+
+
+
+
+
+
+
+
+*************
+
+# 1. Define our names
+RG="204-rg"
+ACR_NAME="acrfitnessfritz$RANDOM"
+IMAGE_NAME="cont-app-fitness:latest"
+WEBAPP_NAME="cont-app-fitness-demo-fritz01"
+
+# 2. Create the Container Registry
+echo "Creating Container Registry: $ACR_NAME..."
+az acr create --resource-group $RG --name $ACR_NAME --sku Basic --admin-enabled true
+
+# 3. Build the Docker Image directly on Azure using your local Dockerfile
+echo "Building the Docker container..."
+az acr build --registry $ACR_NAME --image $IMAGE_NAME .
+
+# 4. Point your Web App to the new Container Image
+echo "Configuring Web App to use the new container..."
+az webapp config container set \
+  --name $WEBAPP_NAME \
+  --resource-group $RG \
+  --docker-registry-server-url https://$ACR_NAME.azurecr.io \
+  --docker-registry-server-user $(az acr credential show --name $ACR_NAME --query username -o tsv) \
+  --docker-registry-server-password $(az acr credential show --name $ACR_NAME --query passwords[0].value -o tsv)
+
+*********************************************************
+
+
+# Set your active registry name
+ACR_NAME="acrfitnessfritz22023"
+RG="204-rg"
+IMAGE_NAME="cont-app-fitness:latest"
+WEBAPP_NAME="cont-app-fitness-demo-fritz01"
+
+# Retry the build command
+az acr build --registry $ACR_NAME --image $IMAGE_NAME .
+
+# Attach the resulting image to the Web App
+az webapp config container set \
+  --name $WEBAPP_NAME \
+  --resource-group $RG \
+  --docker-registry-server-url https://$ACR_NAME.azurecr.io \
+  --docker-registry-server-user $(az acr credential show --name $ACR_NAME --query username -o tsv) \
+  --docker-registry-server-password $(az acr credential show --name $ACR_NAME --query passwords[0].value -o tsv)
+
+
+***list the image available**
+az acr repository list --name acrfitnessfritz22023 -o table
+
+****point to the new image********
+az webapp config container set \
+  --name cont-app-fitness-demo-fritz01 \
+  --resource-group 204-rg \
+  --docker-custom-image-name acrfitnessfritz22023.azurecr.io/cont-app-fitness:latest
+
+*****Correct Sequence of Containerization*********
+
+1.Set Your Variables
+First, define all your names so that you don't have to keep typing them. (Remember: ACR names must be globally unique across all of Azure).
+
+RG="204-rg"
+PLAN="app-fitness-linux"
+WEBAPP_NAME="cont-app-fitness-demo-fritz01"
+ACR_NAME="acrfitnessfritz22023"
+IMAGE_NAME="cont-app-fitness:latest"
+
+2.Create the Azure Container Registry (ACR)
+This creates the private vault where your Docker images will be stored. We turn on --admin-enabled so your Web App has permission to pull from it.
+
+az acr create \
+  --resource-group $RG \
+  --name $ACR_NAME \
+  --sku Basic \
+  --admin-enabled true
+
+3. Build the Container Image
+Run this from inside your project folder (where your Dockerfile sits). Azure will upload your code and build the container on their own servers.
+
+az acr build \
+  --registry $ACR_NAME \
+  --image $IMAGE_NAME \
+  .
+
+4.Create the Linux Web App Server
+If you haven't created the Web App yet, this command creates it and points it generally to your new image.
+
+az webapp create \
+  --resource-group $RG \
+  --plan $PLAN \
+  --name $WEBAPP_NAME \
+  --deployment-container-image-name $ACR_NAME.azurecr.io/$IMAGE_NAME
+
+5.Give the Web App the Keys to the Registry
+Since the registry is private, the Web App needs the username and password to pull the image. This command dynamically fetches your registry's credentials and permanently injects them into the Web App.
+
+az webapp config container set \
+  --name $WEBAPP_NAME \
+  --resource-group $RG \
+  --docker-custom-image-name $ACR_NAME.azurecr.io/$IMAGE_NAME \
+  --docker-registry-server-url https://$ACR_NAME.azurecr.io \
+  --docker-registry-server-user $(az acr credential show --name $ACR_NAME --query username -o tsv) \
+  --docker-registry-server-password $(az acr credential show --name $ACR_NAME --query passwords[0].value -o tsv)
+
+
+Redeploy Future Updates
+Whenever you change your code in the future, you don't have to run all of those commands again! You only need to rebuild the image and restart the web app:
+
+# 1. Push your new code into a new image
+az acr build --registry $ACR_NAME --image $IMAGE_NAME .
+
+# 2. Restart the app so it pulls the newest image
+az webapp restart --name $WEBAPP_NAME --resource-group $RG
+******************************************************************************************
+# 1. Stage all your changed files
+git add .
+
+# 2. Add a descriptive commit message
+git commit -m "Updated Pluralsight footer"
+
+# 3. Pull any pending backend changes (e.g., Azure's auto-generated workflow files)
+git pull origin main --rebase
+
+# 4. Push to GitHub! This instantly triggers the build & release workflow in Azure
+git push
+
+###Git Commands####
+git remote remove origin 
+git remote add origin <URL >
+git remote -v
+
+git push -u origin master --force
+
+
+git log --oneline
+2ee80c5 Add .gitignore for Terraform
+9c192a8 initial commit
+
+
+git reset --soft 9c192a8 && git reset HEAD .
+
+git add . && git commit -m "Add Terraform configuration"
+
+
+git add . ; git commit -m "Initial commit" ; git push -u origin main
+
+
+
+
+
+
+
+
+
+
+
+
+
