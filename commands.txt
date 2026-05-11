@@ -291,9 +291,10 @@ git reset --soft 9c192a8 && git reset HEAD .
 git add . && git commit -m "Add Terraform configuration"
 
 git add . ; git commit -m "Initial commit" ; git push -u origin main
+git pull --rebase origin main; git push -u origin main 
+
 
 git pull origin main --allow-unrelated-histories --no-edit
-
 
 
 #Region
@@ -416,4 +417,8 @@ az webapp config container set \
 
 
 ##delete the resource 
-az webapp delete --name carvedrockfitness-container-0422 --resource-group asp-demo-rg
+az webapp delete --name carvedrockfitness-container-0422 --resource-group asp-demo-rg 
+
+
+
+
