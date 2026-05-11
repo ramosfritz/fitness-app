@@ -37,13 +37,9 @@ az appservice plan create --name $NAME \
 --location southeastasia
 
 git clone https://github.com/ramosfritz/fitness-app
-
 cd fitness-app/ 
-
 code .
-
 RG=$(az group list --query [].name --output tsv)
-
 LOCATION=$(az group list --query [].location --output tsv)
 
 ******create the web app ********
@@ -294,18 +290,130 @@ git reset --soft 9c192a8 && git reset HEAD .
 
 git add . && git commit -m "Add Terraform configuration"
 
-
 git add . ; git commit -m "Initial commit" ; git push -u origin main
 
+git pull origin main --allow-unrelated-histories --no-edit
+
+
+
+#Region
+
+
+#################################################################
+##Run on Azure Cloud Shell on portal 
+##1 Create a Linux App service plan 
+RG="asp-demo-rg"; NAME="asp-carvedrockfitness-linux"
+az appservice plan create --name $NAME \
+--resource-group $RG \
+--sku B1 \
+--location southeastasia
+
+
+#windows
+RG="asp-demo-rg"
+NAME="asp-carvedrockfitness-windows"
+
+az appservice plan create --name $NAME \
+  --resource-group $RG \
+  --sku B1 \
+  --location southeastasia
+
+
+##clone the git repo and launch vs code in the portal 
+git clone https://github.com/ramosfritz/fitness-app
+cd fitness-app/ 
+code .
+RG=$(az group list --query [].name --output tsv)
+LOCATION=$(az group list --query [].location --output tsv)
+
+
+##create the web app for windows
+
+az webapp up \
+--name asp-carvedrockfitness-windows-0422\
+--resource-group asp-demo-rg \
+--plan asp-carvedrockfitness-windows \
+--runtime dotnet:8 \
+--sku B1 \
+--location southeastasia
+
+
+
+
+##create the web app for linux
+az appservice plan create --name $NAME \
+--resource-group $RG \
+--is-linux \
+--sku B1
+
+
+
+## Create Azure Container Registry
+az acr create \
+--resource-group asp-demo-rg \
+--name carvedrockacr0422 \
+--sku Basic
+
+#Build the Docker image
+az acr build --registry carvedrockacr0422 --image fitness-app:v1 . 
+
+# List repositories in the Azure Container Registry
+az acr repository list --name carvedrockacr0422 --output table
+
+# List tags for the specific fitness-app repository
+az acr repository show-tags --name carvedrockacr0422 --repository fitness-app --output table
+
+##Enable the Admin user (so the Web App can pull the image): 
+
+az acr update --name carvedrockacr0422 --admin-enabled true
+
+
+##Create the Web App (using the updated two-step method)
+
+# Step 1: Create the web app using a public image first
+az webapp create \
+--resource-group asp-demo-rg \
+--plan asp-carvedrockfitness-linux \
+--name carvedrockfitness-container-0422 \
+--deployment-container-image-name nginx
+
+# Step 2: Configure the web app to use your private ACR image
+az webapp config container set \
+--name carvedrockfitness-container-0422 \
+--resource-group asp-demo-rg \
+--docker-custom-image-name carvedrockacr0422.azurecr.io/fitness-app:v1 \
+--docker-registry-server-url https://carvedrockacr0422.azurecr.io
+
+The modern, reliable way to do this is a two-step process:
+
+1.Create the Web App infrastructure first using a basic public image (like nginx) so it doesn't need passwords.
+2.Update the configuration to point to your secure Azure Container Registry.
+##create the linux app service plan
+az appservice plan create \
+--name asp-carvedrockfitness-linux \
+--resource-group asp-demo-rg \
+--is-linux \
+--sku B1
+
+
+
+##Step 1: Create the Web App
+az webapp create \
+--resource-group asp-demo-rg \
+--plan asp-carvedrockfitness-linux \
+--name carvedrockfitness-container-0422 \
+--deployment-container-image-name nginx
+
+##Step 2: Connect it to your Container Registry
+az webapp config container set \
+--name carvedrockfitness-container-0422 \
+--resource-group asp-demo-rg \
+--docker-custom-image-name carvedrockacr0422.azurecr.io/fitness-app:v1 \
+--docker-registry-server-url https://carvedrockacr0422.azurecr.io
 
 
 
 
 
-
-
-
-
-
-
-
+##delete the resource 
+az webapp delete --name carvedrockfitness-container-0422 --resource-group asp-demo-rg
